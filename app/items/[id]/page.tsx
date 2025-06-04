@@ -4,12 +4,14 @@ import { Card } from "@/components/ui/card"
 import { format } from "date-fns"
 import Link from "next/link"
 import { ContactForm } from "@/components/contact-form"
-import { getItemById } from "@/lib/storage"
+import { createClient } from "@/lib/supabase/server"
 
-export default function ItemDetailPage({ params }: { params: { id: string } }) {
-  const item = getItemById(params.id)
+export default async function ItemDetailPage({ params }: { params: { id: string } }) {
+  const supabase = createClient()
 
-  if (!item) {
+  const { data: item, error } = await supabase.from("items").select("*").eq("id", params.id).single()
+
+  if (error || !item) {
     notFound()
   }
 

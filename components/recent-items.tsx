@@ -6,24 +6,39 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatDistanceToNow } from "date-fns"
-import { filterItems, type Item } from "@/lib/storage"
+import { createClient } from "@/lib/supabase/client"
+import type { Item } from "@/lib/supabase/types"
 
 type ItemType = "all" | "lost" | "found"
 
 export function RecentItems({ type = "all" }: { type: ItemType }) {
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
+  const supabase = createClient()
 
   useEffect(() => {
-    const fetchItems = () => {
+    async function fetchItems() {
       setLoading(true)
-      const filteredItems = filterItems({ type }).slice(0, 6)
-      setItems(filteredItems)
+
+      let query = supabase.from("items").select("*").order("created_at", { ascending: false }).limit(6)
+
+      if (type !== "all") {
+        query = query.eq("type", type)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error("Error fetching items:", error)
+      } else {
+        setItems(data || [])
+      }
+
       setLoading(false)
     }
 
     fetchItems()
-  }, [type])
+  }, [type, supabase])
 
   if (loading) {
     return (

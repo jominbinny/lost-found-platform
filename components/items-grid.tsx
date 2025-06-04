@@ -7,31 +7,50 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatDistanceToNow } from "date-fns"
 import { useSearchParams } from "next/navigation"
-import { filterItems, type Item } from "@/lib/storage"
+import { createClient } from "@/lib/supabase/client"
+import type { Item } from "@/lib/supabase/types"
 
 export function ItemsGrid() {
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
   const searchParams = useSearchParams()
+  const supabase = createClient()
 
-  const type = searchParams.get("type") as "lost" | "found" | "all" | null
+  const type = searchParams.get("type") as "lost" | "found" | null
   const category = searchParams.get("category")
   const search = searchParams.get("search")
 
   useEffect(() => {
-    const fetchItems = () => {
+    async function fetchItems() {
       setLoading(true)
-      const filteredItems = filterItems({
-        type: type || "all",
-        category: category || undefined,
-        search: search || undefined,
-      })
-      setItems(filteredItems)
+
+      let query = supabase.from("items").select("*").order("created_at", { ascending: false })
+
+      if (type && (type === "lost" || type === "found")) {
+        query = query.eq("type", type)
+      }
+
+      if (category && category !== "all") {
+        query = query.eq("category", category)
+      }
+
+      if (search) {
+        query = query.or(`item_name.ilike.%${search}%,description.ilike.%${search}%`)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error("Error fetching items:", error)
+      } else {
+        setItems(data || [])
+      }
+
       setLoading(false)
     }
 
     fetchItems()
-  }, [type, category, search])
+  }, [type, category, search, supabase])
 
   if (loading) {
     return (

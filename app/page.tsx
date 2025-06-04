@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RecentItems } from "@/components/recent-items"
+import { MigrationBanner } from "@/components/migration-banner"
 
 export default function Home() {
   return (
     <div className="container mx-auto px-4 py-8">
+      <MigrationBanner />
       <div className="flex flex-col items-center text-center mb-12">
         <h1 className="text-4xl font-bold tracking-tight mb-4">Campus Lost & Found</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mb-8">

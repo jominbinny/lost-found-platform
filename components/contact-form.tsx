@@ -11,7 +11,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/hooks/use-toast"
-import { addContactRequest } from "@/lib/storage"
+import { createClient } from "@/lib/supabase/client"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -29,6 +29,7 @@ export function ContactForm({
   ownerEmail: string
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const supabase = createClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -43,14 +44,18 @@ export function ContactForm({
     setIsSubmitting(true)
 
     try {
-      // Add contact request to localStorage
-      addContactRequest({
+      // Insert contact request into database
+      const { error } = await supabase.from("contact_requests").insert({
         item_id: itemId,
         from_name: values.name,
         from_email: values.email,
         message: values.message,
         to_email: ownerEmail,
       })
+
+      if (error) {
+        throw new Error(`Error submitting form: ${error.message}`)
+      }
 
       toast({
         title: "Message sent!",

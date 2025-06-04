@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Search, X } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 const itemCategories = [
   "ID Card",
@@ -27,7 +28,9 @@ const itemCategories = [
 export function ItemsFilter() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [categories, setCategories] = useState<string[]>([])
   const [mounted, setMounted] = useState(false)
+  const supabase = createClient()
 
   const type = searchParams.get("type") || "all"
   const category = searchParams.get("category") || ""
@@ -35,7 +38,19 @@ export function ItemsFilter() {
 
   useEffect(() => {
     setMounted(true)
-  }, [])
+
+    // Fetch unique categories from the database
+    async function fetchCategories() {
+      const { data } = await supabase.from("items").select("category").order("category")
+
+      if (data) {
+        const uniqueCategories = [...new Set(data.map((item) => item.category))]
+        setCategories(uniqueCategories)
+      }
+    }
+
+    fetchCategories()
+  }, [supabase])
 
   // Don't render anything during SSR to avoid hydration mismatch
   if (!mounted) return null

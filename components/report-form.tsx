@@ -18,7 +18,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { toast } from "@/hooks/use-toast"
-import { addItem, convertImageToBase64 } from "@/lib/storage"
+import { createClient } from "@/lib/supabase/client"
+import { uploadImage } from "@/lib/supabase/storage"
 
 const formSchema = z.object({
   name: z.string().optional(),
@@ -48,6 +49,7 @@ export function ReportForm({ type }: { type: "lost" | "found" }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const router = useRouter()
+  const supabase = createClient()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -68,23 +70,30 @@ export function ReportForm({ type }: { type: "lost" | "found" }) {
     try {
       let imageUrl = null
 
-      // Convert image to base64 if provided (only for found items)
+      // Upload image if provided (only for found items)
       if (type === "found" && values.image && values.image.size > 0) {
-        imageUrl = await convertImageToBase64(values.image)
+        imageUrl = await uploadImage(values.image, type)
+        if (!imageUrl) {
+          throw new Error("Failed to upload image")
+        }
       }
 
-      // Add item to localStorage
-      addItem({
+      // Insert item into database
+      const { error } = await supabase.from("items").insert({
         type,
-        name: values.name || undefined,
+        name: values.name || null,
         email: values.email,
         item_name: values.item_name,
         category: values.category,
         description: values.description,
         location: values.location,
         date: values.date.toISOString(),
-        image_url: imageUrl || undefined,
+        image_url: imageUrl,
       })
+
+      if (error) {
+        throw new Error(`Error submitting form: ${error.message}`)
+      }
 
       toast({
         title: "Success!",

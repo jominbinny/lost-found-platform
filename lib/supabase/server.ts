@@ -1,5 +1,6 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
+import type { Database } from "./types"
 
 export function createClient() {
   const cookieStore = cookies()
@@ -11,7 +12,7 @@ export function createClient() {
     throw new Error("Missing Supabase environment variables")
   }
 
-  return createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+  return createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value
